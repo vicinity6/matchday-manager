@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Matchday Manager V3</title>
+<style>
+:root{
+  --bg:#07111f;--panel:#0d1728;--card:#111d31;--soft:#17253d;--text:#eef2ff;--muted:#9aa7bd;
+  --line:#26364f;--green:#22c55e;--blue:#3b82f6;--red:#ef4444;--amber:#f59e0b;--purple:#a855f7;
+}
+body.light{--bg:#f4f6fb;--panel:#ffffff;--card:#ffffff;--soft:#eef2f7;--text:#111827;--muted:#526176;--line:#d5dce8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.sidebar{background:linear-gradient(180deg,#0b1628,#07111f);border-right:1px solid var(--line);padding:18px;position:sticky;top:0;height:100vh}
+body.light .sidebar{background:#fff}
+.brand{display:flex;gap:12px;align-items:center;margin-bottom:20px}
+.logo{width:50px;height:50px;border-radius:16px;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#052e16}
+h1,h2,h3{margin-top:0}.title{font-size:20px;font-weight:900}.sub{font-size:12px;color:var(--muted)}
+.nav{display:flex;flex-direction:column;gap:8px}
+.nav button{justify-content:flex-start;text-align:left}
+.main{padding:20px;max-width:1400px;width:100%;margin:0 auto}
+.topbar{display:none}
+button,input,select,textarea{border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--text);padding:11px;font-size:14px}
+button{cursor:pointer;font-weight:800;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+button:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.primary{background:var(--green);color:#052e16;border:none}.blue{background:var(--blue);color:#fff;border:none}
+.danger{background:var(--red);color:#fff;border:none}.warn{background:var(--amber);color:#2b1700;border:none}.ghost{background:transparent}
+.nav button.active{background:var(--green);color:#052e16;border:none}
+.page{display:none}.page.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.full{grid-column:1/-1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 12px 28px rgba(0,0,0,.18)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.row>*{flex:1}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:linear-gradient(180deg,var(--card),var(--panel));border:1px solid var(--line);border-radius:18px;padding:16px}
+.big{font-size:30px;font-weight:950;letter-spacing:-.5px}.small{font-size:12px;color:var(--muted)}
+.list{display:grid;gap:8px}.item{border:1px solid var(--line);border-radius:14px;background:var(--soft);padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.playerCard{border:1px solid var(--line);border-radius:16px;background:var(--soft);padding:12px}
+.playerGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 9px;font-size:12px;color:var(--muted);margin:2px}
+.team{border:1px solid var(--line);border-radius:18px;background:var(--soft);padding:14px;margin-bottom:12px}
+.teamPlayer{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:12px;padding:9px;margin:7px 0;background:rgba(255,255,255,.03)}
+.selected{outline:3px solid var(--amber)}
+.checkRow{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--soft);margin-bottom:8px}
+.check{width:24px;height:24px}
+textarea{width:100%;min-height:170px;resize:vertical}
+.modalBg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;max-width:560px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.modalBg.show{display:flex}
+table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--line);padding:9px;text-align:left}th{font-size:12px;color:var(--muted)}
+.bottomNav{display:none}
+@media(max-width:950px){
+  .app{display:block}.sidebar{display:none}.main{padding:12px 12px 82px}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .bottomNav{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:7px;z-index:20}
+  .bottomNav button{font-size:11px;padding:8px 4px;flex-direction:column;border-radius:12px}
+  .grid,.stats{grid-template-columns:1fr}.big{font-size:26px}.checkRow{grid-template-columns:1fr auto auto}.hideMob{display:none}.item{align-items:flex-start;flex-direction:column}
+}
+
+.moreSheetBg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;z-index:60}
+.moreSheetBg.show{display:flex}
+.moreSheet{width:100%;background:var(--card);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -20px 50px rgba(0,0,0,.35)}
+.moreHandle{width:46px;height:5px;border-radius:99px;background:var(--line);margin:0 auto 12px}
+.moreGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.moreGrid button{justify-content:flex-start;font-size:15px;padding:14px}
+.progressSteps{display:grid;gap:8px}
+.progressStep{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:14px;background:var(--soft);padding:10px}
+.progressDot{width:26px;height:26px;border-radius:99px;display:flex;align-items:center;justify-content:center;background:var(--green);color:#052e16;font-weight:900}
+.floatingActions{display:none !important}
+@media(max-width:950px){
+  .bottomNav{grid-template-columns:repeat(5,1fr)}
+  .floatingActions{position:fixed;right:14px;bottom:82px;z-index:25;display:flex;flex-direction:column;gap:8px}
+  .floatingActions button{box-shadow:0 8px 22px rgba(0,0,0,.35)}
+  .check{width:30px;height:30px}
+  .checkRow{padding:13px}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo" id="logoA">⚽</div><div><div class="title" id="titleA">Matchday Manager V3</div><div class="sub" id="subA">Current: Thursday 5pm</div></div></div>
+    <div class="nav" id="sideNav"></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><div class="brand"><div class="logo" id="logoB">⚽</div><div><div class="title" id="titleB">Matchday Manager V3</div><div class="sub" id="subB">Current</div></div></div><button onclick="toggleTheme()">🌗</button></div>
+
+    <section id="dashboard" class="page active">
+      <div class="grid">
+        <div class="card full">
+          <h2>🏠 Dashboard</h2>
+          <div class="stats" id="dashboardStats"></div>
+        </div>
+        <div class="card">
+          <h2>⚡ Quick Start</h2>
+          <div class="row"><button class="primary" onclick="quickStart('Thursday')">Start Thursday</button><button class="blue" onclick="quickStart('Sunday')">Start Sunday</button></div>
+          <p class="small">Starts a fresh session, clears Available/Paid, keeps your players, ratings, locks, history and kitty.</p>
+        </div>
+        <div class="card">
+          <h2>⏳ Outstanding</h2>
+          <div id="dashOutstanding"></div>
+        </div>
+
+        <div class="card full">
+          <h2>📍 Matchday Progress</h2>
+          <div class="progressSteps" id="progressSteps"></div>
+        </div>
+
+        <div class="card full">
+          <h2>📅 Recent Matchdays</h2>
+          <div id="recentHistory"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="matchday" class="page">
+      <div class="grid">
+        <div class="card">
+          <h2>⚽ Matchday Setup</h2>
+          <div class="row"><select id="sessionType" onchange="presetSession()"><option>Thursday</option><option>Sunday</option><option>Custom</option></select><input id="sessionName" placeholder="Session name"></div>
+          <div class="row"><label>Fee £<input id="fee" type="number" step="0.5"></label><label>Pitch £<input id="pitch" type="number" step="1"></label><label>Teams<input id="teamsCount" type="number" min="2" max="6"></label></div>
+          <div class="row"><button class="primary" onclick="startMatchday()">New Matchday</button><button class="warn" onclick="openFinishWizard()">Finish Matchday</button></div>
+          <textarea id="sessionNotes" placeholder="Session notes e.g. Josh paid late, pitch was flooded, Ben injured..."></textarea>
+        </div>
+        <div class="card">
+          <h2>🎲 Team Generator</h2>
+          <div class="row"><button class="primary" onclick="generateTeams()">Generate</button><button class="blue" onclick="generateTeams()">Regenerate</button></div>
+          <div class="row"><button id="swapBtn" onclick="toggleSwap()">Manual Swap: Off</button><button onclick="copyWhatsApp()">Copy WhatsApp</button></div>
+          <div id="fairness"></div>
+        </div>
+        <div class="card full">
+          <h2>👥 Players Today</h2>
+          <div class="row"><button onclick="smartTick()">Smart Tick Regulars</button><button onclick="setAvailable(true)">All Available</button><button onclick="setAvailable(false)">Clear Available</button><button onclick="markAvailablePaid()">Mark Available Paid</button></div>
+          <div id="todayPlayers"></div>
+        </div>
+        <div class="card"><h2>Teams</h2><div id="teams"></div></div>
+        <div class="card"><h2>WhatsApp</h2><textarea id="whatsapp" readonly></textarea><button onclick="copyWhatsApp()">Copy</button><p id="copyMsg" class="small"></p></div>
+      </div>
+    </section>
+
+    <section id="players" class="page">
+      <div class="grid">
+        <div class="card">
+          <h2>➕ Add Player</h2>
+          <div class="row"><input id="newPlayer" placeholder="Name"><select id="newRating"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select><button class="primary" onclick="addPlayer()">Add</button></div>
+          <input id="search" placeholder="Search players" oninput="render()">
+        </div>
+        <div class="card">
+          <h2>🔒 Team Rules</h2>
+          <p class="small">Lock keeps players together. Keep apart separates them where possible.</p>
+        </div>
+        <div class="card full"><h2>Players</h2><div class="playerGrid" id="playerCards"></div></div>
+        <div class="card"><h2>Lock Together</h2><div class="row"><select id="lockA"></select><select id="lockB"></select><button onclick="addPair('locks')">Add</button></div><div id="locksList"></div></div>
+        <div class="card"><h2>Keep Apart</h2><div class="row"><select id="sepA"></select><select id="sepB"></select><button onclick="addPair('seps')">Add</button></div><div id="sepsList"></div></div>
+      </div>
+    </section>
+
+    <section id="payments" class="page">
+      <div class="grid">
+        <div class="card"><h2>💷 Today</h2><div id="todayMoney"></div></div>
+        <div class="card"><h2>⏳ Outstanding Payments</h2><div id="outstanding"></div></div>
+      </div>
+    </section>
+
+    <section id="kitty" class="page">
+      <div class="grid">
+        <div class="card full"><h2>💰 Kitty Dashboard</h2><div class="stats" id="kittyStats"></div></div>
+        <div class="card">
+          <h2>➕ Add Kitty Transaction</h2>
+          <div class="row"><select id="kittyType"><option>Thursday</option><option>Sunday</option><option>General</option></select></div>
+          <div class="row"><input id="kittyDesc" placeholder="Description e.g. Bought bibs"><input id="kittyAmount" type="number" step="0.5" placeholder="-20 or 20"></div>
+          <button class="primary" onclick="addKittyTx()">Add Transaction</button>
+        </div>
+        <div class="card"><h2>How it works</h2><p>Thursday matchdays update Thursday Kitty.</p><p>Sunday matchdays update Sunday Kitty.</p><p>Spending is a minus amount.</p></div>
+        <div class="card full"><h2>Thursday Transactions</h2><div id="txThursday"></div></div>
+        <div class="card full"><h2>Sunday Transactions</h2><div id="txSunday"></div></div>
+        <div class="card full"><h2>General Transactions</h2><div id="txGeneral"></div></div>
+      </div>
+    </section>
+
+    <section id="history" class="page">
+      <div class="grid">
+        <div class="card full"><h2>📖 Matchday History</h2><div id="historyList"></div></div>
+        <div class="card full"><h2>Selected Matchday</h2><div id="historyDetail" class="small">Tap View on a matchday.</div></div>
+      </div>
+    </section>
+
+    <section id="stats" class="page">
+      <div class="grid">
+        <div class="card full"><h2>📊 Overview</h2><div class="stats" id="overviewStats"></div></div>
+        <div class="card full"><h2>Player Stats</h2><div id="playerStats"></div></div>
+      </div>
+    </section>
+
+    <section id="settings" class="page">
+      <div class="grid">
+        <div class="card"><h2>🎨 Branding</h2><div class="row"><input id="setTitle"><input id="setLogo"></div><button class="primary" onclick="saveBrand()">Save Branding</button></div>
+        <div class="card"><h2>🔵 Team Names</h2><div class="row"><input id="team1"><input id="team1e"></div><div class="row"><input id="team2"><input id="team2e"></div><button class="primary" onclick="saveSettings()">Save Teams</button></div>
+
+        <div class="card full"><h2>ℹ️ About</h2><p><b>Matchday Manager V3.1</b></p><p class="small">Offline football session manager built for Thursday/Sunday matchdays, teams, payments, history and kitty tracking.</p></div>
+
+        <div class="card full"><h2>💾 Backup</h2><p class="small" id="backupStatus">Export a backup regularly and save it to Drive/iCloud/OneDrive.</p><div class="row"><button class="primary" onclick="downloadBackup()">Download Backup</button><input type="file" accept=".json" onchange="importBackup(event)"></div></div>
+        <div class="card full"><h2>Advanced Backup Text</h2><div class="row"><button onclick="exportBackupText()">Show Backup Text</button></div><textarea id="backupText" placeholder="Backup text appears here if needed."></textarea></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="bottomNav" id="bottomNav"></div>
+
+
+<div class="moreSheetBg" id="moreSheetBg" onclick="closeMoreSheet(event)">
+  <div class="moreSheet" onclick="event.stopPropagation()">
+    <div class="moreHandle"></div>
+    <h2>More</h2>
+    <div class="moreGrid">
+      <button onclick="goFromMore('payments')">💷 Payments</button>
+      <button onclick="goFromMore('history')">📖 Matchday History</button>
+      <button onclick="goFromMore('stats')">📊 Statistics</button>
+      <button onclick="goFromMore('settings')">⚙️ Settings</button>
+      <button onclick="goFromMore('settings'); setTimeout(()=>downloadBackup(), 150)">💾 Backup Now</button>
+      <button onclick="toggleTheme(); hideMore()">🌗 Dark / Light</button>
+    </div>
+    <div class="row" style="margin-top:12px"><button onclick="hideMore()">Close</button></div>
+  </div>
+</div>
+
+<div class="floatingActions" id="floatingActions">
+  <button class="primary" onclick="generateTeams()">🎲 Generate</button>
+  <button class="warn" onclick="openFinishWizard()">✅ Finish</button>
+</div>
+
+<div class="modalBg" id="finishModal">
+  <div class="modal">
+    <h2>Finish Matchday?</h2>
+    <div id="finishSummary"></div>
+    <div class="row"><button onclick="closeFinishWizard()">Cancel</button><button class="primary" onclick="saveMatchday()">Save Matchday</button></div>
+  </div>
+</div>
+
+<script>
+const starter=["Scott","David","Dino","Finn","James","Noah","Oliver","Riley","Alex","Ben","Dan W","Felix","Jack","Jake","Jamie","Joel","Kyle","Layton","Lloyd","Matthew","Mick","Paul","Tom","Josh","Louie","Ivo","Mason","Morgan","Owain","Tommy","Ryan","Camron","Tylor","Ben T","Sam","Dan G"];
+const pages=[["dashboard","🏠","Dashboard"],["matchday","⚽","Matchday"],["players","👥","Players"],["payments","💷","Payments"],["kitty","💰","Kitty"],["history","📖","History"],["stats","📊","Stats"],["settings","⚙️","Settings"]];
+let data=JSON.parse(localStorage.getItem("matchdayManagerV3")||"null");
+if(!data){data={settings:{title:"Matchday Manager V3",logo:"⚽",theme:"dark",t1:"Blue",t1e:"🔵",t2:"Red",t2e:"🔴",lastBackup:null},current:{type:"Thursday",name:"Thursday 5pm",fee:5,pitch:45,teamsCount:2,notes:"",teams:[],started:false},players:starter.map(n=>({id:crypto.randomUUID(),name:n,rating:3,active:true,available:false,paid:false})),locks:[],seps:[],outstanding:[],history:[],kittyTx:[]};save();}
+let swap=false,swapPick=null,lastPage="dashboard";
+
+function save(){localStorage.setItem("matchdayManagerV3",JSON.stringify(data))}
+function money(n){return "£"+Number(n||0).toFixed(Number(n||0)%1?2:0)}
+function nowDate(){return new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}
+function safe(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+function go(id){lastPage=id;document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===id));render()}
+function showMore(){moreSheetBg.classList.add("show")}
+function hideMore(){moreSheetBg.classList.remove("show")}
+function closeMoreSheet(e){if(e.target.id==="moreSheetBg")hideMore()}
+function goFromMore(id){hideMore();go(id)}
+
+function buildNav(){sideNav.innerHTML=pages.map(p=>`<button data-page="${p[0]}" onclick="go('${p[0]}')">${p[1]} ${p[2]}</button>`).join("");bottomNav.innerHTML=[
+  ["dashboard","🏠","Dashboard"],
+  ["matchday","⚽","Matchday"],
+  ["players","👥","Players"],
+  ["kitty","💰","Kitty"]
+].map(p=>`<button data-page="${p[0]}" onclick="go('${p[0]}')"><span>${p[1]}</span><span>${p[2]}</span></button>`).join("") + `<button onclick="showMore()"><span>☰</span><span>More</span></button>`}
+function presetSession(){const t=sessionType.value;if(t==="Thursday"){sessionName.value="Thursday 5pm";pitch.value=45}else if(t==="Sunday"){sessionName.value="Sunday 12pm";pitch.value=50}else{sessionName.value="Custom";pitch.value=0}}
+function quickStart(t){go("matchday");sessionType.value=t;presetSession();startMatchday()}
+function syncInputsToCurrent(){data.current.type=sessionType.value;data.current.name=sessionName.value||"Matchday";data.current.fee=+fee.value||5;data.current.pitch=+pitch.value||0;data.current.teamsCount=+teamsCount.value||2;data.current.notes=sessionNotes.value||""}
+function startMatchday(){syncInputsToCurrent();data.current.teams=[];data.current.started=true;data.players.forEach(p=>{p.available=false;p.paid=false});save();render()}
+function addPlayer(){const n=newPlayer.value.trim();if(!n)return;data.players.push({id:crypto.randomUUID(),name:n,rating:+newRating.value,active:true,available:false,paid:false});newPlayer.value="";save();render()}
+function updatePlayer(id,k,v){const p=data.players.find(x=>x.id===id);if(!p)return;p[k]=k==="rating"?+v:v;save();render()}
+function deletePlayer(id){if(!confirm("Delete player?"))return;data.players=data.players.filter(p=>p.id!==id);data.locks=data.locks.filter(x=>!x.includes(id));data.seps=data.seps.filter(x=>!x.includes(id));save();render()}
+function setAvailable(v){data.players.filter(p=>p.active).forEach(p=>p.available=v);save();render()}
+function markAvailablePaid(){data.players.filter(p=>p.available).forEach(p=>p.paid=true);save();render()}
+function smartTick(){const type=sessionType.value;data.players.forEach(p=>{const played=data.history.filter(h=>h.type===type&&h.players.some(x=>x.id===p.id||x.name===p.name)).length;p.available=played>=2});save();render()}
+function addPair(type){const a=(type==="locks"?lockA:sepA).value,b=(type==="locks"?lockB:sepB).value;if(!a||!b||a===b)return;if(!data[type].some(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a)))data[type].push([a,b]);save();render()}
+function removePair(type,i){data[type].splice(i,1);save();render()}
+function playerName(id){return data.players.find(p=>p.id===id)?.name||"Unknown"}
+function groups(){const av=data.players.filter(p=>p.active&&p.available),used=new Set(),g=[];for(const [a,b] of data.locks){const pa=av.find(p=>p.id===a),pb=av.find(p=>p.id===b);if(pa&&pb&&!used.has(a)&&!used.has(b)){g.push([pa,pb]);used.add(a);used.add(b)}}av.forEach(p=>{if(!used.has(p.id))g.push([p])});return g.sort(()=>Math.random()-.5)}
+function flat(t){return t.flat()} function teamRating(t){return flat(t).reduce((s,p)=>s+p.rating,0)}
+function violates(team,g){const ids=new Set([...flat(team).map(p=>p.id),...g.map(p=>p.id)]);return data.seps.some(([a,b])=>ids.has(a)&&ids.has(b))}
+function score(ts){const spread=a=>a.length?Math.max(...a)-Math.min(...a):0;return spread(ts.map(t=>flat(t).length))*8+spread(ts.map(teamRating))*4}
+function generateTeams(){syncInputsToCurrent();let best=null,bestScore=1e9,c=Math.max(2,data.current.teamsCount);for(let attempt=0;attempt<350;attempt++){let ts=Array.from({length:c},()=>[]),gs=groups().sort((a,b)=>b.reduce((s,p)=>s+p.rating,0)-a.reduce((s,p)=>s+p.rating,0)||Math.random()-.5);for(const g of gs){let bi=0,bs=1e9;for(let i=0;i<c;i++){if(violates(ts[i],g))continue;const test=ts.map(t=>t.slice());test[i].push(g);const sc=score(test);if(sc<bs){bs=sc;bi=i}}if(bs===1e9){for(let i=0;i<c;i++){const test=ts.map(t=>t.slice());test[i].push(g);const sc=score(test)+100;if(sc<bs){bs=sc;bi=i}}}ts[bi].push(g)}const sc=score(ts);if(sc<bestScore){bestScore=sc;best=ts}}data.current.teams=best||[];save();render()}
+function fairness(){if(!data.current.teams.length)return 0;const r=data.current.teams.map(teamRating),s=data.current.teams.map(t=>flat(t).length);return Math.max(50,Math.min(100,Math.round(100-(Math.max(...r)-Math.min(...r))*7-(Math.max(...s)-Math.min(...s))*10)))}
+function teamLabel(i){if(i===0)return `${data.settings.t1e} ${data.settings.t1}`;if(i===1)return `${data.settings.t2e} ${data.settings.t2}`;return `Team ${i+1}`}
+function toggleSwap(){swap=!swap;swapPick=null;swapBtn.textContent=`Manual Swap: ${swap?"On":"Off"}`;renderTeams()}
+function pickSwap(pid,ti){if(!swap)return;if(!swapPick){swapPick={pid,ti};renderTeams();return}const a=swapPick,b={pid,ti};if(a.pid===b.pid){swapPick=null;renderTeams();return}const pa=removeFromTeam(a.ti,a.pid),pb=removeFromTeam(b.ti,b.pid);if(pa&&pb){data.current.teams[a.ti].push([pb]);data.current.teams[b.ti].push([pa])}swapPick=null;save();render()}
+function removeFromTeam(ti,pid){const t=data.current.teams[ti];for(let gi=0;gi<t.length;gi++){const pi=t[gi].findIndex(p=>p.id===pid);if(pi>-1){const p=t[gi].splice(pi,1)[0];if(!t[gi].length)t.splice(gi,1);return p}}}
+function openFinishWizard(){syncInputsToCurrent();const av=data.players.filter(p=>p.active&&p.available),paid=av.filter(p=>p.paid).length,unpaid=av.filter(p=>!p.paid),col=paid*data.current.fee,kit=col-data.current.pitch;finishSummary.innerHTML=`<div class="stats" style="grid-template-columns:1fr 1fr"><div class="stat"><b>Players</b><div class="big">${av.length}</div></div><div class="stat"><b>Paid</b><div class="big">${paid}/${av.length}</div></div><div class="stat"><b>Collected</b><div class="big">${money(col)}</div></div><div class="stat"><b>Kitty</b><div class="big">${money(kit)}</div></div></div><p><b>Unpaid:</b> ${unpaid.map(p=>safe(p.name)).join(", ")||"None"}</p><p><b>Session:</b> ${safe(data.current.name)} (${safe(data.current.type)})</p>`;finishModal.classList.add("show")}
+function closeFinishWizard(){finishModal.classList.remove("show")}
+function saveMatchday(){const av=data.players.filter(p=>p.active&&p.available);if(!av.length){alert("No players selected.");return}const paid=av.filter(p=>p.paid).length,unpaid=av.filter(p=>!p.paid),col=paid*data.current.fee,kit=col-data.current.pitch;unpaid.forEach(p=>data.outstanding.push({id:crypto.randomUUID(),playerId:p.id,name:p.name,amount:data.current.fee,session:data.current.name,type:data.current.type,date:nowDate(),paid:false}));data.history.unshift({id:crypto.randomUUID(),date:nowDate(),type:data.current.type,name:data.current.name,fee:data.current.fee,pitch:data.current.pitch,notes:data.current.notes,teams:JSON.parse(JSON.stringify(data.current.teams)),players:av.map(p=>({id:p.id,name:p.name,rating:p.rating,paid:p.paid})),count:av.length,paidCount:paid,collected:col,kitty:kit,unpaid:unpaid.map(p=>p.name)});data.current.started=false;closeFinishWizard();save();render();alert("Matchday saved.")}
+function kitty(type){return data.history.filter(h=>h.type===type).reduce((s,h)=>s+h.kitty,0)+data.kittyTx.filter(t=>t.type===type).reduce((s,t)=>s+t.amount,0)}
+function outstandingTotal(type=null){return data.outstanding.filter(o=>!o.paid&&(!type||o.type===type)).reduce((s,o)=>s+o.amount,0)}
+function addKittyTx(){const d=kittyDesc.value.trim(),a=+kittyAmount.value,t=kittyType.value;if(!d||!a){alert("Add description and amount.");return}data.kittyTx.unshift({id:crypto.randomUUID(),date:nowDate(),type:t,desc:d,amount:a});kittyDesc.value="";kittyAmount.value="";save();render()}
+function deleteTx(id){if(!confirm("Delete transaction?"))return;data.kittyTx=data.kittyTx.filter(t=>t.id!==id);save();render()}
+function markOutstandingPaid(id){const o=data.outstanding.find(x=>x.id===id);if(o)o.paid=true;save();render()}
+function deleteOutstanding(id){data.outstanding=data.outstanding.filter(o=>o.id!==id);save();render()}
+function makeWhatsApp(){const lines=[`⚽ ${data.current.name}`,""];data.current.teams.forEach((t,i)=>{lines.push(`${teamLabel(i)} - Rating ${teamRating(t)}`);flat(t).forEach(p=>lines.push(`• ${p.name}`));lines.push("")});const av=data.players.filter(p=>p.available),paid=av.filter(p=>p.paid).length,unpaid=av.filter(p=>!p.paid),col=paid*data.current.fee,outs=data.outstanding.filter(o=>!o.paid);if(unpaid.length||outs.length){lines.push("❌ Outstanding");unpaid.forEach(p=>lines.push(`• ${p.name} - ${money(data.current.fee)} today`));outs.forEach(o=>lines.push(`• ${o.name} - ${money(o.amount)} (${o.session})`));lines.push("")}else lines.push("✅ Everyone paid","");lines.push(`💷 Paid: ${paid}/${av.length}`,`💰 Collected: ${money(col)}`,`🏟 Pitch: ${money(data.current.pitch)}`,`Kitty: ${money(col-data.current.pitch)}`);whatsapp.value=lines.join("\n")}
+function copyWhatsApp(){makeWhatsApp();whatsapp.select();document.execCommand("copy");copyMsg.textContent="Copied."}
+function saveBrand(){data.settings.title=setTitle.value||"Matchday Manager V3";data.settings.logo=setLogo.value||"⚽";save();render()}
+function saveSettings(){data.settings.t1=team1.value||"Blue";data.settings.t1e=team1e.value||"🔵";data.settings.t2=team2.value||"Red";data.settings.t2e=team2e.value||"🔴";save();render()}
+function toggleTheme(){data.settings.theme=data.settings.theme==="dark"?"light":"dark";save();render()}
+function downloadBackup(){data.settings.lastBackup=new Date().toLocaleString();save();const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`matchday-manager-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);render()}
+function exportBackupText(){backupText.value=JSON.stringify(data,null,2)}
+function importBackup(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{data=JSON.parse(r.result);save();render();alert("Backup imported.")}catch{alert("Invalid backup file.")}};r.readAsText(f)}
+function transactionTable(type,id){let arr=[];data.history.filter(h=>h.type===type).forEach(h=>arr.push({date:h.date,desc:`${h.name} matchday`,amount:h.kitty,locked:true}));data.kittyTx.filter(t=>t.type===type).forEach(t=>arr.push({...t,locked:false}));const el=document.getElementById(id);if(!arr.length){el.innerHTML='<p class="small">No transactions yet.</p>';return}let run=0;const rows=arr.slice().reverse().map(t=>{run+=t.amount;return{...t,balance:run}}).reverse().map(t=>`<tr><td>${safe(t.date)}</td><td>${safe(t.desc)}${t.locked?' <span class="badge">matchday</span>':''}</td><td>${money(t.amount)}</td><td>${money(t.balance)}</td><td>${t.locked?'-':`<button class="danger" onclick="deleteTx('${t.id}')">Delete</button>`}</td></tr>`).join("");el.innerHTML=`<table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Balance</th><th></th></tr></thead><tbody>${rows}</tbody></table>`}
+function viewHistory(id){const h=data.history.find(x=>x.id===id);if(!h)return;historyDetail.innerHTML=`<h3>${safe(h.name)} — ${safe(h.date)}</h3>${h.teams.map((t,i)=>`<div class="team"><b>${teamLabel(i)} - Rating ${teamRating(t)}</b><br>${flat(t).map(p=>"• "+safe(p.name)).join("<br>")}</div>`).join("")}<p><b>Paid:</b> ${h.paidCount}/${h.count}</p><p><b>Unpaid:</b> ${h.unpaid.map(safe).join(", ")||"None"}</p><p><b>Kitty:</b> ${money(h.kitty)}</p><p><b>Notes:</b> ${safe(h.notes||"No notes")}</p>`}
+
+function renderTeams(){teams.innerHTML=data.current.teams.length?data.current.teams.map((t,i)=>`<div class="team"><h3>${teamLabel(i)} <span class="badge">Rating ${teamRating(t)}</span><span class="badge">${flat(t).length} players</span></h3>${flat(t).map(p=>`<div class="teamPlayer ${swapPick&&swapPick.pid===p.id?"selected":""}" onclick="pickSwap('${p.id}',${i})"><span>${safe(p.name)}</span><span class="badge">${p.rating}</span></div>`).join("")}</div>`).join(""):'<p class="small">No teams generated yet.</p>';const f=fairness();fairness.innerHTML=data.current.teams.length?`<div class="stat"><b>Team Fairness</b><div class="big">${f}%</div><span class="small">${"★★★★★".slice(0,Math.max(1,Math.round(f/20)))} balanced</span></div>`:'<p class="small">Generate teams to see fairness.</p>'}
+function renderOutstanding(el,compact=false){const outs=data.outstanding.filter(o=>!o.paid);el.innerHTML=outs.length?outs.map(o=>`<div class="item"><div><b>${safe(o.name)}</b> — ${money(o.amount)}<br><span class="small">${safe(o.session)} · ${safe(o.date)}</span></div>${compact?"":`<div><button class="primary" onclick="markOutstandingPaid('${o.id}')">Paid</button> <button class="danger" onclick="deleteOutstanding('${o.id}')">Delete</button></div>`}</div>`).join(""):'<p class="small">No outstanding payments.</p>'}
+function renderStats(){const total=Math.max(data.history.length,1);playerStats.innerHTML=`<table><thead><tr><th>Player</th><th>Played</th><th>Attendance</th><th>Paid Sessions</th><th>Owes</th><th>Rating</th></tr></thead><tbody>${data.players.filter(p=>p.active).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>{const played=data.history.filter(h=>h.players.some(x=>x.id===p.id||x.name===p.name)).length,paid=data.history.filter(h=>h.players.some(x=>(x.id===p.id||x.name===p.name)&&x.paid)).length,owes=data.outstanding.filter(o=>!o.paid&&(o.playerId===p.id||o.name===p.name)).reduce((s,o)=>s+o.amount,0);return`<tr><td>${safe(p.name)}</td><td>${played}</td><td>${Math.round(played/total*100)}%</td><td>${paid}</td><td>${owes?money(owes):"-"}</td><td>${p.rating}</td></tr>`}).join("")}</tbody></table>`;overviewStats.innerHTML=`<div class="stat"><b>Total Sessions</b><div class="big">${data.history.length}</div></div><div class="stat"><b>Avg Players</b><div class="big">${data.history.length?Math.round(data.history.reduce((s,h)=>s+h.count,0)/data.history.length):0}</div></div><div class="stat"><b>Combined Kitty</b><div class="big">${money(kitty("Thursday")+kitty("Sunday")+kitty("General"))}</div></div><div class="stat"><b>Outstanding</b><div class="big">${money(outstandingTotal())}</div></div>`}
+function render(){
+  document.body.classList.toggle("light",data.settings.theme==="light");
+  logoA.textContent=logoB.textContent=data.settings.logo;titleA.textContent=titleB.textContent=data.settings.title;subA.textContent=subB.textContent=`Current: ${data.current.name}`;
+  document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===lastPage));
+  sessionType.value=data.current.type;sessionName.value=data.current.name;fee.value=data.current.fee;pitch.value=data.current.pitch;teamsCount.value=data.current.teamsCount;sessionNotes.value=data.current.notes||"";
+  const th=kitty("Thursday"),su=kitty("Sunday"),gen=kitty("General"),all=th+su+gen,oth=outstandingTotal("Thursday"),osu=outstandingTotal("Sunday"),out=outstandingTotal();
+  dashboardStats.innerHTML=`<div class="stat"><b>Thursday Kitty</b><div class="big">${money(th)}</div><span class="small">Expected ${money(th+oth)}</span></div><div class="stat"><b>Sunday Kitty</b><div class="big">${money(su)}</div><span class="small">Expected ${money(su+osu)}</span></div><div class="stat"><b>Combined</b><div class="big">${money(all)}</div><span class="small">Expected ${money(all+out)}</span></div><div class="stat"><b>Outstanding</b><div class="big">${money(out)}</div></div>`;
+  renderOutstanding(dashOutstanding,true);
+
+  const stepAvailable=data.players.some(p=>p.available), stepPaid=data.players.some(p=>p.paid), stepTeams=data.current.teams.length>0;
+  progressSteps.innerHTML=[
+    ["New Matchday",data.current.started],
+    ["Select Players",stepAvailable],
+    ["Collect Payments",stepPaid],
+    ["Generate Teams",stepTeams],
+    ["Finish Matchday",false]
+  ].map(([name,done],i)=>`<div class="progressStep"><div class="progressDot">${done?"✓":i+1}</div><div><b>${name}</b><br><span class="small">${done?"Done":"Pending"}</span></div></div>`).join("");
+
+
+  recentHistory.innerHTML=data.history.slice(0,5).length?data.history.slice(0,5).map(h=>`<div class="item"><div><b>${safe(h.name)}</b><br><span class="small">${safe(h.date)} · ${h.count} players · Kitty ${money(h.kitty)}</span></div><button onclick="go('history');viewHistory('${h.id}')">View</button></div>`).join(""):'<p class="small">No matchdays saved yet.</p>';
+  todayPlayers.innerHTML=data.players.filter(p=>p.active).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>{const owes=data.outstanding.filter(o=>!o.paid&&o.playerId===p.id).reduce((s,o)=>s+o.amount,0);return`<div class="checkRow"><div><b>${safe(p.name)}</b><br><span class="small">Rating ${p.rating}${owes?` · Owes ${money(owes)}`:""}</span></div><label>Here<br><input class="check" type="checkbox" ${p.available?"checked":""} onchange="updatePlayer('${p.id}','available',this.checked)"></label><label>Paid<br><input class="check" type="checkbox" ${p.paid?"checked":""} onchange="updatePlayer('${p.id}','paid',this.checked)"></label><span class="hideMob badge">${p.rating}</span></div>`}).join("");
+  renderTeams();makeWhatsApp();
+  const q=(search?.value||"").toLowerCase();playerCards.innerHTML=data.players.filter(p=>p.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>{const played=data.history.filter(h=>h.players.some(x=>x.id===p.id||x.name===p.name)).length,owes=data.outstanding.filter(o=>!o.paid&&o.playerId===p.id).reduce((s,o)=>s+o.amount,0);return`<div class="playerCard"><h3>${safe(p.name)}</h3><p><span class="badge">Rating ${p.rating}</span><span class="badge">Played ${played}</span>${owes?`<span class="badge">Owes ${money(owes)}</span>`:""}</p><div class="row"><select onchange="updatePlayer('${p.id}','rating',this.value)">${[1,2,3,4,5].map(r=>`<option ${p.rating==r?"selected":""}>${r}</option>`).join("")}</select><button onclick="updatePlayer('${p.id}','active',${!p.active})">${p.active?"Active":"Inactive"}</button><button class="danger" onclick="deletePlayer('${p.id}')">Delete</button></div></div>`}).join("");
+  const opts=data.players.filter(p=>p.active).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}">${safe(p.name)}</option>`).join("");[lockA,lockB,sepA,sepB].forEach(s=>s.innerHTML=opts);
+  locksList.innerHTML=data.locks.length?data.locks.map((x,i)=>`<div class="item"><span>${playerName(x[0])} + ${playerName(x[1])}</span><button onclick="removePair('locks',${i})">Remove</button></div>`).join(""):'<p class="small">No locks.</p>';
+  sepsList.innerHTML=data.seps.length?data.seps.map((x,i)=>`<div class="item"><span>${playerName(x[0])} / ${playerName(x[1])}</span><button onclick="removePair('seps',${i})">Remove</button></div>`).join(""):'<p class="small">No keep-apart rules.</p>';
+  const av=data.players.filter(p=>p.available),paid=av.filter(p=>p.paid).length,col=paid*data.current.fee;todayMoney.innerHTML=`<div class="stats" style="grid-template-columns:1fr 1fr"><div class="stat"><b>Players</b><div class="big">${av.length}</div></div><div class="stat"><b>Paid</b><div class="big">${paid}/${av.length}</div></div><div class="stat"><b>Collected</b><div class="big">${money(col)}</div></div><div class="stat"><b>Today Kitty</b><div class="big">${money(col-data.current.pitch)}</div></div></div>`;
+  renderOutstanding(outstanding,false);
+  kittyStats.innerHTML=`<div class="stat"><b>Thursday</b><div class="big">${money(th)}</div><span class="small">Outstanding ${money(oth)} · Expected ${money(th+oth)}</span></div><div class="stat"><b>Sunday</b><div class="big">${money(su)}</div><span class="small">Outstanding ${money(osu)} · Expected ${money(su+osu)}</span></div><div class="stat"><b>General</b><div class="big">${money(gen)}</div></div><div class="stat"><b>Combined</b><div class="big">${money(all)}</div><span class="small">Expected ${money(all+out)}</span></div>`;
+  transactionTable("Thursday","txThursday");transactionTable("Sunday","txSunday");transactionTable("General","txGeneral");
+  historyList.innerHTML=data.history.length?data.history.map(h=>`<div class="item"><div><b>${safe(h.name)}</b><br><span class="small">${safe(h.date)} · ${h.type} · ${h.count} players · Paid ${h.paidCount}/${h.count} · Kitty ${money(h.kitty)}</span></div><button onclick="viewHistory('${h.id}')">View</button></div>`).join(""):'<p class="small">No history yet.</p>';
+  renderStats();
+  setTitle.value=data.settings.title;setLogo.value=data.settings.logo;team1.value=data.settings.t1;team1e.value=data.settings.t1e;team2.value=data.settings.t2;team2e.value=data.settings.t2e;backupStatus.textContent=data.settings.lastBackup?`Last backup: ${data.settings.lastBackup}`:"Export a backup regularly and save it to Drive/iCloud/OneDrive.";
+  save();
+}
+buildNav();go("dashboard");
+</script>
+</body>
+</html>
